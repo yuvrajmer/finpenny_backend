@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Finpenny — Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <!-- Lucide Icon Library -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --blue:#2B5A84;--blue-dark:#1a3a5a;--blue-light:#e8f1f8;
+      --red:#ef4444;--green:#22c55e;--amber:#f59e0b;
+      --bg:#f4f7fb;--card:#fff;--border:#e8edf3;
+      --text:#1a2332;--muted:#6b7a8d;--subtle:#f0f4f8;
+    }
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    .sidebar{position:fixed;top:0;left:0;width:240px;height:100vh;background:var(--blue-dark);display:flex;flex-direction:column;z-index:100}
+    .sidebar-logo{padding:24px 20px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;gap:12px}
+    .logo-icon{width:38px;height:38px;background:linear-gradient(135deg,#4a9fd4,#2B5A84);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0}
+    .logo-text{font-size:16px;font-weight:700;color:#fff;letter-spacing:0.3px}
+    .logo-sub{font-size:11px;color:rgba(255,255,255,0.45);margin-top:1px}
+    .sidebar-nav{padding:16px 12px;flex:1}
+    .nav-label{font-size:10px;font-weight:600;color:rgba(255,255,255,0.3);letter-spacing:1.2px;text-transform:uppercase;padding:0 8px;margin-bottom:8px;margin-top:8px}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:all 0.2s;color:rgba(255,255,255,0.6);font-size:13px;font-weight:500;margin-bottom:2px}
+    .nav-item:hover{background:rgba(255,255,255,0.08);color:#fff}
+    .nav-item.active{background:rgba(255,255,255,0.12);color:#fff}
+    .nav-item svg{width:16px;height:16px;flex-shrink:0}
+    .nav-badge{margin-left:auto;background:#ef4444;color:#fff;border-radius:10px;padding:2px 7px;font-size:10px;font-weight:700;min-width:20px;text-align:center}
+    .sidebar-footer{padding:16px;border-top:1px solid rgba(255,255,255,0.08);font-size:12px;color:rgba(255,255,255,0.3);text-align:center}
+    .main{margin-left:240px;min-height:100vh}
+    .topbar{background:#fff;border-bottom:1px solid var(--border);padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+    .topbar-left h1{font-size:17px;font-weight:600;color:var(--text)}
+    .topbar-left p{font-size:12px;color:var(--muted);margin-top:1px}
+    .topbar-right{display:flex;align-items:center;gap:12px}
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all 0.2s}
+    .btn-primary{background:var(--blue);color:#fff}
+    .btn-primary:hover{background:var(--blue-dark)}
+    .btn-outline{background:#fff;color:var(--blue);border:1px solid var(--border)}
+    .btn-outline:hover{background:var(--blue-light);border-color:var(--blue)}
+    .btn-danger{background:#fff;color:var(--red);border:1px solid #fecaca}
+    .btn-danger:hover{background:#fef2f2}
+    .btn-success{background:#fff;color:#16a34a;border:1px solid #bbf7d0}
+    .btn-success:hover{background:#f0fdf4}
+    .btn-sm{padding:5px 10px;font-size:12px;border-radius:6px}
+    .btn svg{width:14px;height:14px}
+    .content{padding:28px 32px}
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+    .stat-card{background:#fff;border-radius:14px;padding:20px;border:1px solid var(--border);position:relative;overflow:hidden}
+    .stat-card::before{content:'';position:absolute;top:0;right:0;width:80px;height:80px;border-radius:50%;transform:translate(20px,-20px);opacity:0.08}
+    .stat-card.blue::before{background:var(--blue)}
+    .stat-card.amber::before{background:var(--amber)}
+    .stat-card.green::before{background:var(--green)}
+    .stat-card.red::before{background:var(--red)}
+    .stat-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+    .stat-icon svg{width:20px;height:20px}
+    .stat-icon.blue{background:#dbeafe;color:var(--blue)}
+    .stat-icon.amber{background:#fef3c7;color:var(--amber)}
+    .stat-icon.green{background:#dcfce7;color:var(--green)}
+    .stat-icon.red{background:#fee2e2;color:var(--red)}
+    .stat-label{font-size:12px;color:var(--muted);font-weight:500;margin-bottom:4px}
+    .stat-value{font-size:28px;font-weight:700;color:var(--text)}
+    .stat-trend{font-size:11px;color:var(--muted);margin-top:4px}
+    .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px}
+    .section-title{font-size:15px;font-weight:600;color:var(--text)}
+    .section-sub{font-size:12px;color:var(--muted);margin-top:2px}
+    .filter-tabs{display:flex;gap:4px;background:var(--subtle);padding:4px;border-radius:10px}
+    .filter-tab{padding:6px 14px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--muted);transition:all 0.2s}
+    .filter-tab.active{background:#fff;color:var(--blue);box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+    .table-card{background:#fff;border-radius:14px;border:1px solid var(--border);overflow:hidden}
+    .table-search{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+    .search-input{flex:1;border:1px solid var(--border);border-radius:8px;padding:8px 14px 8px 36px;font-size:13px;outline:none;background:var(--subtle);color:var(--text);transition:all 0.2s;font-family:'Inter',sans-serif}
+    .search-input:focus{border-color:var(--blue);background:#fff}
+    .search-wrap{position:relative;flex:1}
+    .search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted)}
+    table{width:100%;border-collapse:collapse}
+    thead tr{background:var(--subtle);border-bottom:1px solid var(--border)}
+    th{padding:11px 16px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0.6px;text-transform:uppercase;white-space:nowrap}
+    tbody tr{border-bottom:1px solid var(--border);transition:background 0.15s}
+    tbody tr:hover{background:#fafbfc}
+    tbody tr:last-child{border-bottom:none}
+    td{padding:13px 16px;font-size:13px;vertical-align:middle}
+    .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+    .badge-new{background:#fef9c3;color:#854d0e}
+    .badge-read{background:#dcfce7;color:#166534}
+    .badge-dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+    .dot-new{background:#f59e0b}
+    .dot-read{background:#22c55e}
+    .avatar{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+    .name-cell{display:flex;align-items:center;gap:10px}
+    .name-text{font-weight:500;font-size:13px}
+    .name-sub{font-size:11px;color:var(--muted)}
+    .msg-preview{max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted);cursor:pointer;font-size:12px}
+    .msg-preview:hover{color:var(--blue);text-decoration:underline}
+    .actions-cell{display:flex;align-items:center;gap:6px}
+    .empty-state{text-align:center;padding:60px 20px}
+    .empty-icon{margin-bottom:12px;opacity:0.5;display:flex;justify-content:center}
+    .empty-icon svg{width:44px;height:44px}
+    .empty-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px}
+    .empty-sub{font-size:13px;color:var(--muted)}
+    .loading-state{text-align:center;padding:50px;color:var(--muted);font-size:14px}
+    .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .overlay{display:none;position:fixed;inset:0;background:rgba(10,20,35,0.5);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+    .overlay.open{display:flex}
+    .modal{background:#fff;border-radius:20px;width:90%;max-width:540px;box-shadow:0 24px 80px rgba(0,0,0,0.18);overflow:hidden;animation:slideUp 0.25s ease}
+    @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+    .modal-header{padding:24px 28px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between}
+    .modal-title{font-size:16px;font-weight:600;color:var(--text)}
+    .modal-close-btn{width:30px;height:30px;border-radius:8px;border:none;background:var(--subtle);cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:16px;transition:all 0.15s}
+    .modal-close-btn:hover{background:var(--border);color:var(--text)}
+    .modal-body{padding:24px 28px}
+    .modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+    .modal-field label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;display:block}
+    .modal-field p{font-size:14px;color:var(--text);font-weight:500}
+    .modal-msg{background:var(--subtle);border-radius:10px;padding:14px 16px;font-size:13px;color:var(--text);line-height:1.7;border-left:3px solid var(--blue)}
+    .modal-msg-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px}
+    .modal-footer{padding:16px 28px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+    .toast{position:fixed;bottom:24px;right:24px;z-index:999;background:#1a2332;color:#fff;padding:12px 18px;border-radius:12px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;transform:translateY(80px);opacity:0;transition:all 0.35s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 8px 30px rgba(0,0,0,0.2)}
+    .toast.show{transform:translateY(0);opacity:1}
+    .toast svg{width:16px;height:16px}
+    .confirm-modal{max-width:400px}
+    .confirm-icon{text-align:center;margin-bottom:12px;display:flex;justify-content:center}
+    .confirm-icon svg{width:40px;height:40px}
+    .confirm-title{font-size:16px;font-weight:600;text-align:center;margin-bottom:6px}
+    .confirm-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:20px;line-height:1.6}
+    .confirm-btns{display:flex;gap:10px;justify-content:center}
+    .recycle-notice{background:#fff8f0;border:1px solid #fed7aa;border-radius:10px;padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;gap:10px;font-size:13px;color:#9a3412}
+    .page{display:none}
+    .page.active{display:block}
+    tr.is-new td:first-child{border-left:3px solid var(--amber)}
+  </style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">F</div>
+    <div>
+      <div class="logo-text">Finpenny</div>
+      <div class="logo-sub">Admin Panel</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Main</div>
+    <div class="nav-item active" onclick="switchPage('inbox',this)">
+      <i data-lucide="inbox"></i>
+      Inbox
+      <span class="nav-badge" id="nav-new-badge" style="display:none">0</span>
+    </div>
+    <div class="nav-item" onclick="switchPage('trash',this)">
+      <i data-lucide="trash-2"></i>
+      Recycle Bin
+      <span class="nav-badge" id="nav-trash-badge" style="display:none">0</span>
+    </div>
+    <div class="nav-label" style="margin-top:16px">Quick Links</div>
+    <div class="nav-item" onclick="window.open('http://localhost:5173')">
+      <i data-lucide="globe"></i>
+      View Website
+    </div>
+  </nav>
+  <div class="sidebar-footer">Finpenny © 2025</div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1 id="page-title">Contact Submissions</h1>
+      <p id="page-sub">All messages from your contact form</p>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-outline" onclick="loadAll()">
+        <i data-lucide="refresh-cw"></i>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- INBOX PAGE -->
+    <div class="page active" id="page-inbox">
+      <div class="stats-grid">
+        <div class="stat-card blue"><div class="stat-icon blue"><i data-lucide="mail"></i></div><div class="stat-label">Total Received</div><div class="stat-value" id="stat-total">—</div><div class="stat-trend">All time</div></div>
+        <div class="stat-card amber"><div class="stat-icon amber"><i data-lucide="bell"></i></div><div class="stat-label">Unread</div><div class="stat-value" id="stat-new">—</div><div class="stat-trend">Needs attention</div></div>
+        <div class="stat-card green"><div class="stat-icon green"><i data-lucide="check-circle"></i></div><div class="stat-label">Read</div><div class="stat-value" id="stat-read">—</div><div class="stat-trend">Reviewed</div></div>
+        <div class="stat-card red"><div class="stat-icon red"><i data-lucide="trash"></i></div><div class="stat-label">In Recycle Bin</div><div class="stat-value" id="stat-trash">—</div><div class="stat-trend">Soft deleted</div></div>
+      </div>
+
+      <div class="section-header">
+        <div><div class="section-title">Messages</div><div class="section-sub" id="inbox-count-label">Loading...</div></div>
+        <div class="filter-tabs">
+          <button class="filter-tab active" onclick="filterInbox('all',this)">All</button>
+          <button class="filter-tab" onclick="filterInbox('new',this)">Unread</button>
+          <button class="filter-tab" onclick="filterInbox('read',this)">Read</button>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-search">
+          <div class="search-wrap">
+            <i data-lucide="search" class="search-icon" style="width:14px;height:14px"></i>
+            <input class="search-input" type="text" placeholder="Search by name, email, phone..." oninput="searchContacts(this.value)"/>
+          </div>
+        </div>
+        <div id="inbox-loading" class="loading-state"><div class="spinner"></div>Loading messages...</div>
+        <table id="inbox-table" style="display:none">
+          <thead><tr><th>#</th><th>Contact</th><th>Phone</th><th>Message</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+          <tbody id="inbox-body"></tbody>
+        </table>
+        <div id="inbox-empty" class="empty-state" style="display:none">
+          <div class="empty-icon"><i data-lucide="inbox"></i></div>
+          <div class="empty-title">No messages found</div>
+          <div class="empty-sub">Contact form submissions will appear here</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRASH PAGE -->
+    <div class="page" id="page-trash">
+      <div class="recycle-notice">
+        <i data-lucide="info" style="width:18px;height:18px"></i>
+        <div>Items here are soft-deleted. Click <strong>Restore</strong> to bring them back, or <strong>Delete Forever</strong> to permanently remove.</div>
+      </div>
+      <div class="section-header">
+        <div><div class="section-title">Recycle Bin</div><div class="section-sub" id="trash-count-label">Loading...</div></div>
+        <button class="btn btn-danger" onclick="confirmEmptyTrash()" id="empty-trash-btn" style="display:none">
+            <i data-lucide="trash-2"></i> Empty Recycle Bin
+        </button>
+      </div>
+      <div class="table-card">
+        <div id="trash-loading" class="loading-state"><div class="spinner"></div>Loading recycle bin...</div>
+        <table id="trash-table" style="display:none">
+          <thead><tr><th>#</th><th>Contact</th><th>Phone</th><th>Message</th><th>Deleted At</th><th>Actions</th></tr></thead>
+          <tbody id="trash-body"></tbody>
+        </table>
+        <div id="trash-empty" class="empty-state" style="display:none">
+          <div class="empty-icon"><i data-lucide="trash"></i></div>
+          <div class="empty-title">Recycle bin is empty</div>
+          <div class="empty-sub">Deleted messages will appear here before permanent removal</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MESSAGE MODAL -->
+<div class="overlay" id="msg-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-title" id="m-name-title">—</div><div style="font-size:12px;color:var(--muted);margin-top:2px" id="m-date-title">—</div></div>
+      <button class="modal-close-btn" onclick="closeModal('msg-overlay')"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-grid">
+        <div class="modal-field"><label>Email</label><p id="m-email">—</p></div>
+        <div class="modal-field"><label>Phone</label><p id="m-phone">—</p></div>
+        <div class="modal-field"><label>Status</label><p id="m-status">—</p></div>
+        <div class="modal-field"><label>Submitted</label><p id="m-date">—</p></div>
+      </div>
+      <div class="modal-msg-label">Message</div>
+      <div class="modal-msg" id="m-message">—</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" onclick="moveToTrash(currentModalId)"><i data-lucide="trash"></i> Move to Trash</button>
+      <button class="btn btn-primary btn-sm" onclick="closeModal('msg-overlay')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="overlay" id="confirm-overlay">
+  <div class="modal confirm-modal">
+    <div class="modal-body" style="padding:32px 28px">
+      <div class="confirm-icon" id="confirm-icon-box"><i data-lucide="alert-triangle"></i></div>
+      <div class="confirm-title" id="confirm-title">Are you sure?</div>
+      <div class="confirm-sub" id="confirm-sub">This action cannot be undone.</div>
+      <div class="confirm-btns">
+        <button class="btn btn-outline" onclick="closeModal('confirm-overlay')">Cancel</button>
+        <button class="btn btn-danger" id="confirm-ok-btn">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><span id="toast-icon-box"></span><span id="toast-msg"></span></div>
+
+<script>
+const API = 'http://localhost:8000/api';
+let allContacts=[], trashItems=[], inboxFilter='all', currentModalId=null, searchQuery='';
+const COLORS=['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444','#14b8a6'];
+
+function avatarColor(n){let h=0;for(let c of n)h=(h*31+c.charCodeAt(0))%COLORS.length;return COLORS[Math.abs(h)]}
+function initials(f,l){return((f||'')[0]||'')+((l||'')[0]||'')}
+function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function fmtDate(d){return new Date(d).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+function fmtDateShort(d){return new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}
+
+async function loadAll(){await Promise.all([loadContacts(),loadTrash()])}
+
+async function loadContacts(){
+  try{
+    const r=await fetch(`${API}/contacts`);
+    const d=await r.json();
+    if(d.success){allContacts=d.data;updateStats();renderInbox()}
+  }catch(e){
+    document.getElementById('inbox-loading').innerHTML='<div style="color:#ef4444;font-size:14px;text-align:center">❌ Cannot connect to server.<br><small>Make sure <code>node server.js</code> is running</small></div>';
+  }
+}
+
+async function loadTrash(){
+  try{
+    const r=await fetch(`${API}/contacts/trash`);
+    const d=await r.json();
+    if(d.success){trashItems=d.data;updateStats();renderTrash()}
+  }catch(e){}
+}
+
+function updateStats(){
+  const total=allContacts.length, newC=allContacts.filter(c=>c.status==='new').length;
+  const read=allContacts.filter(c=>c.status==='read').length, trash=trashItems.length;
+  document.getElementById('stat-total').textContent=total;
+  document.getElementById('stat-new').textContent=newC;
+  document.getElementById('stat-read').textContent=read;
+  document.getElementById('stat-trash').textContent=trash;
+  const nb=document.getElementById('nav-new-badge');
+  nb.style.display=newC>0?'inline-block':'none'; nb.textContent=newC;
+  const tb=document.getElementById('nav-trash-badge');
+  tb.style.display=trash>0?'inline-block':'none'; tb.textContent=trash;
+  lucide.createIcons();
+}
+
+function renderInbox(){
+  document.getElementById('inbox-loading').style.display='none';
+  let f=allContacts;
+  if(inboxFilter!=='all') f=f.filter(c=>c.status===inboxFilter);
+  if(searchQuery){const q=searchQuery.toLowerCase();f=f.filter(c=>(c.first_name+' '+c.last_name).toLowerCase().includes(q)||c.email.toLowerCase().includes(q)||c.phone.includes(q)||c.message.toLowerCase().includes(q))}
+  document.getElementById('inbox-count-label').textContent=`${f.length} message${f.length!==1?'s':''}`;
+  if(f.length===0){document.getElementById('inbox-table').style.display='none';document.getElementById('inbox-empty').style.display='block';return}
+  document.getElementById('inbox-table').style.display='table';
+  document.getElementById('inbox-empty').style.display='none';
+  const tbody=document.getElementById('inbox-body');
+  tbody.innerHTML='';
+  f.forEach((c,i)=>{
+    const col=avatarColor(c.first_name), ini=initials(c.first_name,c.last_name).toUpperCase(), isNew=c.status==='new';
+    tbody.innerHTML+=`<tr class="${isNew?'is-new':''}" id="row-${c.id}">
+      <td style="color:var(--muted);font-size:12px">${i+1}</td>
+      <td><div class="name-cell"><div class="avatar" style="background:${col}">${ini}</div><div><div class="name-text" style="${isNew?'font-weight:600':''}">${escHtml(c.first_name)} ${escHtml(c.last_name||'')}</div><div class="name-sub">${escHtml(c.email)}</div></div></div></td>
+      <td style="color:var(--muted);font-size:12px">${escHtml(c.phone)}</td>
+      <td><div class="msg-preview" onclick="openMsgModal(${c.id})" title="Click to read">${escHtml(c.message)}</div></td>
+      <td><span class="badge ${isNew?'badge-new':'badge-read'}"><span class="badge-dot ${isNew?'dot-new':'dot-read'}"></span>${isNew?'Unread':'Read'}</span></td>
+      <td style="color:var(--muted);font-size:12px;white-space:nowrap">${fmtDateShort(c.created_at)}</td>
+      <td><div class="actions-cell">${isNew?`<button class="btn btn-success btn-sm" onclick="markRead(${c.id})"><i data-lucide="check"></i> Mark Read</button>`:''}<button class="btn btn-outline btn-sm" onclick="openMsgModal(${c.id})">View</button><button class="btn btn-danger btn-sm" onclick="moveToTrash(${c.id})"><i data-lucide="trash-2"></i></button></div></td>
+    </tr>`;
+  });
+  lucide.createIcons();
+}
+
+function renderTrash(){
+  document.getElementById('trash-loading').style.display='none';
+  const label=document.getElementById('trash-count-label'), emptyBtn=document.getElementById('empty-trash-btn');
+  label.textContent=`${trashItems.length} item${trashItems.length!==1?'s':''} in bin`;
+  emptyBtn.style.display=trashItems.length>0?'inline-flex':'none';
+  if(trashItems.length===0){document.getElementById('trash-table').style.display='none';document.getElementById('trash-empty').style.display='block';return}
+  document.getElementById('trash-table').style.display='table';
+  document.getElementById('trash-empty').style.display='none';
+  const tbody=document.getElementById('trash-body');
+  tbody.innerHTML='';
+  trashItems.forEach((c,i)=>{
+    const col=avatarColor(c.first_name), ini=initials(c.first_name,c.last_name).toUpperCase();
+    tbody.innerHTML+=`<tr>
+      <td style="color:var(--muted);font-size:12px">${i+1}</td>
+      <td><div class="name-cell"><div class="avatar" style="background:${col};opacity:0.6">${ini}</div><div><div class="name-text" style="color:var(--muted)">${escHtml(c.first_name)} ${escHtml(c.last_name||'')}</div><div class="name-sub">${escHtml(c.email)}</div></div></div></td>
+      <td style="color:var(--muted);font-size:12px">${escHtml(c.phone)}</td>
+      <td><div class="msg-preview" style="cursor:default">${escHtml(c.message)}</div></td>
+      <td style="color:var(--muted);font-size:12px;white-space:nowrap">${fmtDate(c.deleted_at||c.created_at)}</td>
+      <td><div class="actions-cell"><button class="btn btn-success btn-sm" onclick="restoreContact(${c.id})"><i data-lucide="rotate-ccw"></i> Restore</button><button class="btn btn-danger btn-sm" onclick="confirmDelete(${c.id})"><i data-lucide="trash-2"></i> Delete Forever</button></div></td>
+    </tr>`;
+  });
+  lucide.createIcons();
+}
+
+async function markRead(id){await fetch(`${API}/contacts/${id}/read`,{method:'PUT'});showToast('check','Marked as read');loadContacts()}
+async function moveToTrash(id){closeModal('msg-overlay');await fetch(`${API}/contacts/${id}/trash`,{method:'PUT'});showToast('trash-2','Moved to Recycle Bin');loadAll()}
+async function restoreContact(id){await fetch(`${API}/contacts/${id}/restore`,{method:'PUT'});showToast('rotate-ccw','Restored to inbox');loadAll()}
+async function permanentDelete(id){await fetch(`${API}/contacts/${id}`,{method:'DELETE'});showToast('trash-2','Permanently deleted');loadAll()}
+async function emptyTrash(){await fetch(`${API}/contacts/trash/empty`,{method:'DELETE'});showToast('trash-2','Recycle bin emptied');loadAll()}
+
+function confirmDelete(id){
+  document.getElementById('confirm-icon-box').innerHTML='<i data-lucide="alert-circle"></i>';
+  document.getElementById('confirm-title').textContent='Delete Forever?';
+  document.getElementById('confirm-sub').textContent='This will permanently remove this contact and cannot be undone.';
+  document.getElementById('confirm-ok-btn').onclick=()=>{closeModal('confirm-overlay');permanentDelete(id)};
+  document.getElementById('confirm-overlay').classList.add('open');
+  lucide.createIcons();
+}
+function confirmEmptyTrash(){
+  document.getElementById('confirm-icon-box').innerHTML='<i data-lucide="trash-2"></i>';
+  document.getElementById('confirm-title').textContent='Empty Recycle Bin?';
+  document.getElementById('confirm-sub').textContent=`All ${trashItems.length} item(s) will be permanently deleted. This cannot be undone.`;
+  document.getElementById('confirm-ok-btn').onclick=()=>{closeModal('confirm-overlay');emptyTrash()};
+  document.getElementById('confirm-overlay').classList.add('open');
+  lucide.createIcons();
+}
+
+function openMsgModal(id){
+  const c=allContacts.find(x=>x.id===id);
+  if(!c) return;
+  currentModalId=id;
+  document.getElementById('m-name-title').textContent=`${c.first_name} ${c.last_name||''}`;
+  document.getElementById('m-date-title').textContent=fmtDate(c.created_at);
+  document.getElementById('m-email').textContent=c.email;
+  document.getElementById('m-phone').textContent=c.phone;
+  document.getElementById('m-status').innerHTML=`<span class="badge ${c.status==='new'?'badge-new':'badge-read'}">${c.status==='new'?'Unread':'Read'}</span>`;
+  document.getElementById('m-date').textContent=fmtDate(c.created_at);
+  document.getElementById('m-message').textContent=c.message;
+  document.getElementById('msg-overlay').classList.add('open');
+  if(c.status==='new') markRead(id);
+  lucide.createIcons();
+}
+
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+function filterInbox(f,btn){inboxFilter=f;document.querySelectorAll('.filter-tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderInbox()}
+function searchContacts(q){searchQuery=q;renderInbox()}
+
+function switchPage(page,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  el.classList.add('active');
+  if(page==='inbox'){document.getElementById('page-title').textContent='Contact Submissions';document.getElementById('page-sub').textContent='All messages from your contact form';loadContacts()}
+  else{document.getElementById('page-title').textContent='Recycle Bin';document.getElementById('page-sub').textContent='Soft-deleted messages — restore or delete forever';loadTrash()}
+}
+
+function showToast(iconName,msg){
+  document.getElementById('toast-icon-box').innerHTML=`<i data-lucide="${iconName}"></i>`;
+  document.getElementById('toast-msg').textContent=msg;
+  const t=document.getElementById('toast');
+  t.classList.add('show');
+  lucide.createIcons();
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+document.querySelectorAll('.overlay').forEach(o=>{o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open')})});
+loadAll();
+setInterval(loadAll,30000);
+</script>
+</body>
+</html>
