@@ -45,8 +45,26 @@ db.exec(`
     cover_image TEXT     DEFAULT '',
     author      TEXT     DEFAULT 'admin',
     status      TEXT     DEFAULT 'draft',
+    tags        TEXT     DEFAULT '',
+    image_width INTEGER  DEFAULT 1200,
+    image_height INTEGER DEFAULT 630,
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
+// Add tags and image dimensions columns if they don't exist
+try { db.exec("ALTER TABLE blog_posts ADD COLUMN tags TEXT DEFAULT ''") } catch(e) {}
+try { db.exec("ALTER TABLE blog_posts ADD COLUMN image_width INTEGER DEFAULT 1200") } catch(e) {}
+try { db.exec("ALTER TABLE blog_posts ADD COLUMN image_height INTEGER DEFAULT 630") } catch(e) {}
+
+// ── Blog Tags Table ───────────────────────────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS blog_tags (
+    id         INTEGER  PRIMARY KEY AUTOINCREMENT,
+    name       TEXT     NOT NULL UNIQUE,
+    slug       TEXT     NOT NULL UNIQUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )
 `);
 

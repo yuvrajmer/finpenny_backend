@@ -281,7 +281,7 @@
       <div class="table-card">
         <div id="blog-loading" class="loading-state"><div class="spinner"></div>Loading posts...</div>
         <table id="blog-table" style="display:none">
-          <thead><tr><th>#</th><th>Cover</th><th>Title</th><th>Category</th><th>Author</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+          <thead><tr><th>#</th><th>Cover</th><th>Title</th><th>Category</th><th>Tags</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
           <tbody id="blog-body"></tbody>
         </table>
         <div id="blog-empty" class="empty-state" style="display:none">
@@ -369,26 +369,45 @@
 
       <div class="form-row" style="margin-bottom:18px">
         <div class="form-group" style="margin-bottom:0">
-          <label>Category</label>
-          <select id="post-category" class="form-control">
-            <option value="">— Select Category —</option>
+          <label>Category (Multiple Select)</label>
+          <select id="post-category" class="form-control" multiple style="height:auto;padding:8px">
+            <option value="">— Select Categories —</option>
           </select>
-        </div>
-        <div class="form-group" style="margin-bottom:0">
-          <label>Author</label>
-          <input type="text" id="post-author" class="form-control" value="admin" placeholder="admin"/>
+          <small style="color:var(--muted);margin-top:4px;display:block">Hold Ctrl/Cmd to select multiple</small>
         </div>
       </div>
 
       <div class="form-group">
-        <label>Short Description / Excerpt</label>
-        <textarea id="post-excerpt" class="form-control" rows="2" placeholder="Brief summary shown on the blog listing page..."></textarea>
+        <label>Tags (Optional)</label>
+        <div style="position:relative">
+          <input type="text" id="post-tags" class="form-control" placeholder="Type tags like: #investment #goals (max 7 tags, separate with comma)" oninput="handleTagInput(this.value)"/>
+          <div id="tag-suggestions" style="position:absolute;top:100%;left:0;right:0;background:white;border:1px solid var(--border);border-radius:8px;margin-top:4px;max-height:200px;overflow-y:auto;z-index:10;display:none;box-shadow:0 4px 6px rgba(0,0,0,0.1)"></div>
+        </div>
+        <div id="selected-tags" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px"></div>
+      </div>
+
+      <div class="form-group">
+        <label>Short Description / Excerpt (max 200 characters)</label>
+        <textarea id="post-excerpt" class="form-control" rows="2" placeholder="Brief summary shown on the blog listing page..." oninput="updateExcerptCount(this)"></textarea>
+        <small style="color:var(--muted);margin-top:4px;display:block"><span id="excerpt-count">0</span>/200</small>
       </div>
 
       <div class="form-group">
         <label>Cover Image URL</label>
         <input type="text" id="post-cover" class="form-control" placeholder="https://example.com/image.jpg" oninput="previewCover(this.value)"/>
         <img id="cover-preview-img" class="cover-preview" src="" alt="Cover Preview"/>
+        <small style="color:var(--muted);margin-top:8px;display:block">📐 Recommended size: <strong>1200x630px</strong> (for optimal display)</small>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group" style="margin-bottom:0">
+          <label>Image Width (px)</label>
+          <input type="number" id="post-img-width" class="form-control" value="1200" min="400" max="4000"/>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>Image Height (px)</label>
+          <input type="number" id="post-img-height" class="form-control" value="630" min="300" max="4000"/>
+        </div>
       </div>
 
       <div class="form-group">
@@ -602,12 +621,13 @@ function renderBlogPosts(){
   tbody.innerHTML='';
   allPosts.forEach((p,i)=>{
     const thumb=p.cover_image?`<img src="${escHtml(p.cover_image)}" class="post-thumb" onerror="this.style.display='none'" />`:`<div class="post-thumb" style="display:flex;align-items:center;justify-content:center"><i data-lucide="image" style="width:16px;height:16px;color:var(--muted)"></i></div>`;
+    const tagsHtml=p.tags?p.tags.split(',').slice(0,3).map(t=>`<span style="font-size:10px;background:var(--blue-light);color:var(--blue);padding:2px 6px;border-radius:4px;white-space:nowrap">${escHtml(t.trim())}</span>`).join(' '):'<span style="color:var(--muted);font-size:11px">—</span>';
     tbody.innerHTML+=`<tr>
       <td style="color:var(--muted);font-size:12px">${i+1}</td>
       <td>${thumb}</td>
       <td><div class="name-text" style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(p.title)}</div></td>
       <td><span style="font-size:12px;color:var(--blue);background:var(--blue-light);padding:3px 8px;border-radius:12px">${escHtml(p.category_name||'Uncategorized')}</span></td>
-      <td style="color:var(--muted);font-size:12px">${escHtml(p.author||'admin')}</td>
+      <td style="display:flex;gap:3px;flex-wrap:wrap">${tagsHtml}</td>
       <td><span class="badge ${p.status==='published'?'badge-published':'badge-draft'}">${p.status==='published'?'Published':'Draft'}</span></td>
       <td style="color:var(--muted);font-size:12px;white-space:nowrap">${fmtDateShort(p.created_at)}</td>
       <td><div class="actions-cell">
@@ -626,13 +646,17 @@ async function openPostEditor(id){
   document.getElementById('post-title').value='';
   document.getElementById('post-excerpt').value='';
   document.getElementById('post-cover').value='';
-  document.getElementById('post-author').value='admin';
+  document.getElementById('post-tags').value='';
+  document.getElementById('selected-tags').innerHTML='';
   document.getElementById('post-status').value='draft';
+  document.getElementById('post-img-width').value='1200';
+  document.getElementById('post-img-height').value='630';
+  document.getElementById('excerpt-count').textContent='0';
   document.getElementById('cover-preview-img').classList.remove('show');
   quill.setContents([]);
   // Populate categories in dropdown
   const sel=document.getElementById('post-category');
-  sel.innerHTML='<option value="">— Select Category —</option>';
+  sel.innerHTML='<option value="">— Select Categories —</option>';
   allCategories.forEach(c=>{ sel.innerHTML+=`<option value="${c.id}">${escHtml(c.name)}</option>`; });
 
   if(id){
@@ -646,10 +670,16 @@ async function openPostEditor(id){
         document.getElementById('post-title').value=p.title;
         document.getElementById('post-excerpt').value=p.excerpt||'';
         document.getElementById('post-cover').value=p.cover_image||'';
-        document.getElementById('post-author').value=p.author||'admin';
+        document.getElementById('post-img-width').value=p.image_width||1200;
+        document.getElementById('post-img-height').value=p.image_height||630;
         document.getElementById('post-status').value=p.status||'draft';
-        document.getElementById('post-category').value=p.category_id||'';
+        document.getElementById('excerpt-count').textContent=p.excerpt?p.excerpt.length:0;
+        if(p.category_id){ document.getElementById('post-category').value=p.category_id; }
         if(p.cover_image){previewCover(p.cover_image)}
+        if(p.tags){
+          document.getElementById('post-tags').value=p.tags;
+          displayTags(p.tags.split(',').map(t=>t.trim()).filter(t=>t));
+        }
         quill.root.innerHTML=p.content||'';
       }
     }catch(e){ showToast('alert-circle','Failed to load post'); return; }
@@ -658,6 +688,36 @@ async function openPostEditor(id){
   }
   document.getElementById('post-overlay').classList.add('open');
   lucide.createIcons();
+}
+
+function displayTags(tagArray){
+  const container=document.getElementById('selected-tags');
+  container.innerHTML=tagArray.filter(t=>t).map((tag,idx)=>`<span style="background:var(--blue);color:white;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:500">${escHtml(tag)} <button onclick="removeTag(${idx})" style="background:none;border:none;color:white;cursor:pointer;margin-left:6px;padding:0">&times;</button></span>`).join('');
+}
+
+function removeTag(idx){
+  const tags=document.getElementById('post-tags').value.split(',').map(t=>t.trim()).filter(t=>t);
+  tags.splice(idx,1);
+  document.getElementById('post-tags').value=tags.join(', ');
+  displayTags(tags);
+}
+
+function handleTagInput(value){
+  if(!value.trim()){document.getElementById('tag-suggestions').style.display='none';return}
+  const lastTag=value.split(',').pop().trim().toLowerCase();
+  if(lastTag.length<2){document.getElementById('tag-suggestions').style.display='none';return}
+  // In a full implementation, fetch suggestions from backend
+  const suggBox=document.getElementById('tag-suggestions');
+  suggBox.style.display='block';
+  suggBox.innerHTML='<div style="padding:8px;color:var(--muted);font-size:12px">Type to search tags...</div>';
+}
+
+function updateExcerptCount(el){
+  document.getElementById('excerpt-count').textContent=el.value.length;
+  if(el.value.length>200){
+    el.value=el.value.substring(0,200);
+    document.getElementById('excerpt-count').textContent='200';
+  }
 }
 
 function previewCover(url){
@@ -673,13 +733,23 @@ async function savePost(statusOverride){
   const excerpt=document.getElementById('post-excerpt').value.trim();
   const category_id=document.getElementById('post-category').value||null;
   const cover_image=document.getElementById('post-cover').value.trim();
-  const author=document.getElementById('post-author').value.trim()||'admin';
   const status=statusOverride||document.getElementById('post-status').value;
+  const image_width=parseInt(document.getElementById('post-img-width').value)||1200;
+  const image_height=parseInt(document.getElementById('post-img-height').value)||630;
+  
+  // Process tags
+  let tagsInput=document.getElementById('post-tags').value.trim();
+  let tags=tagsInput.split(',').map(t=>{
+    let tag=t.trim();
+    if(!tag.startsWith('#')) tag='#'+tag;
+    return tag;
+  }).filter(t=>t.length>1).slice(0,7).join(', ');
 
   if(!title){showToast('alert-circle','Please enter a post title');return}
   if(!content||content==='<p><br></p>'){showToast('alert-circle','Please write some content');return}
+  if(excerpt.length>200){showToast('alert-circle','Excerpt must be less than 200 characters');return}
 
-  const body={title,content,excerpt,category_id,cover_image,author,status};
+  const body={title,content,excerpt,category_id,cover_image,status,tags,image_width,image_height};
   try{
     let r;
     if(id){ r=await fetch(`${API}/blog/posts/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); }

@@ -151,7 +151,7 @@ app.get('/api/blog/posts', (req, res) => {
   try {
     const { category, search } = req.query;
     let query = `
-      SELECT p.*, c.name as category_name, c.slug as category_slug
+      SELECT p.id, p.title, p.slug, p.content, p.excerpt, p.category_id, p.cover_image, p.status, p.tags, p.image_width, p.image_height, p.created_at, p.updated_at, c.name as category_name, c.slug as category_slug
       FROM blog_posts p
       LEFT JOIN blog_categories c ON p.category_id = c.id
       WHERE p.status = 'published'
@@ -172,7 +172,7 @@ app.get('/api/blog/posts', (req, res) => {
 app.get('/api/admin/blog/posts', (req, res) => {
   try {
     const posts = db.prepare(`
-      SELECT p.*, c.name as category_name
+      SELECT p.id, p.title, p.slug, p.content, p.excerpt, p.category_id, p.cover_image, p.status, p.tags, p.image_width, p.image_height, p.created_at, p.updated_at, c.name as category_name
       FROM blog_posts p
       LEFT JOIN blog_categories c ON p.category_id = c.id
       ORDER BY p.created_at DESC
@@ -187,7 +187,7 @@ app.get('/api/admin/blog/posts', (req, res) => {
 app.get('/api/blog/posts/:slug', (req, res) => {
   try {
     const post = db.prepare(`
-      SELECT p.*, c.name as category_name, c.slug as category_slug
+      SELECT p.id, p.title, p.slug, p.content, p.excerpt, p.category_id, p.cover_image, p.status, p.tags, p.image_width, p.image_height, p.created_at, p.updated_at, c.name as category_name, c.slug as category_slug
       FROM blog_posts p
       LEFT JOIN blog_categories c ON p.category_id = c.id
       WHERE p.slug = ? AND p.status = 'published'
@@ -203,7 +203,7 @@ app.get('/api/blog/posts/:slug', (req, res) => {
 app.get('/api/admin/blog/posts/:id', (req, res) => {
   try {
     const post = db.prepare(`
-      SELECT p.*, c.name as category_name
+      SELECT p.id, p.title, p.slug, p.content, p.excerpt, p.category_id, p.cover_image, p.status, p.tags, p.image_width, p.image_height, p.created_at, p.updated_at, c.name as category_name
       FROM blog_posts p
       LEFT JOIN blog_categories c ON p.category_id = c.id
       WHERE p.id = ?
@@ -218,7 +218,7 @@ app.get('/api/admin/blog/posts/:id', (req, res) => {
 // POST create blog post
 app.post('/api/blog/posts', (req, res) => {
   try {
-    const { title, content, excerpt, category_id, cover_image, author, status } = req.body;
+    const { title, content, excerpt, category_id, cover_image, status, tags, image_width, image_height } = req.body;
     if (!title || !content) return res.status(400).json({ success:false, message:'Title and content are required.' });
 
     let slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -227,9 +227,9 @@ app.post('/api/blog/posts', (req, res) => {
     if (existing) slug = slug + '-' + Date.now();
 
     const result = db.prepare(`
-      INSERT INTO blog_posts (title, slug, content, excerpt, category_id, cover_image, author, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(title, slug, content, excerpt || '', category_id || null, cover_image || '', author || 'admin', status || 'draft');
+      INSERT INTO blog_posts (title, slug, content, excerpt, category_id, cover_image, status, tags, image_width, image_height)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(title, slug, content, excerpt || '', category_id || null, cover_image || '', status || 'draft', tags || '', image_width || 1200, image_height || 630);
 
     res.status(201).json({ success:true, message:'Post created.', id: result.lastInsertRowid, slug });
   } catch(e) {
@@ -241,7 +241,7 @@ app.post('/api/blog/posts', (req, res) => {
 // PUT update blog post
 app.put('/api/blog/posts/:id', (req, res) => {
   try {
-    const { title, content, excerpt, category_id, cover_image, author, status } = req.body;
+    const { title, content, excerpt, category_id, cover_image, status, tags, image_width, image_height } = req.body;
     if (!title || !content) return res.status(400).json({ success:false, message:'Title and content are required.' });
 
     let slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -250,9 +250,9 @@ app.put('/api/blog/posts/:id', (req, res) => {
 
     db.prepare(`
       UPDATE blog_posts
-      SET title = ?, slug = ?, content = ?, excerpt = ?, category_id = ?, cover_image = ?, author = ?, status = ?, updated_at = CURRENT_TIMESTAMP
+      SET title = ?, slug = ?, content = ?, excerpt = ?, category_id = ?, cover_image = ?, status = ?, tags = ?, image_width = ?, image_height = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).run(title, slug, content, excerpt || '', category_id || null, cover_image || '', author || 'admin', status || 'draft', req.params.id);
+    `).run(title, slug, content, excerpt || '', category_id || null, cover_image || '', status || 'draft', tags || '', image_width || 1200, image_height || 630, req.params.id);
 
     res.json({ success:true, message:'Post updated.', slug });
   } catch(e) {
@@ -268,6 +268,71 @@ app.delete('/api/blog/posts/:id', (req, res) => {
     res.json({ success:true, message:'Post deleted.' });
   } catch(e) {
     res.status(500).json({ success:false, message:'Error deleting post.' });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════
+//  BLOG TAG ROUTES
+// ════════════════════════════════════════════════════════════════════
+
+// GET all unique tags from posts
+app.get('/api/blog/tags', (req, res) => {
+  try {
+    const posts = db.prepare("SELECT tags FROM blog_posts WHERE status = 'published' AND tags != ''").all();
+    const tagsSet = new Set();
+    posts.forEach(p => {
+      if (p.tags) {
+        const tags = p.tags.split(',').map(t => t.trim()).filter(t => t);
+        tags.forEach(t => tagsSet.add(t));
+      }
+    });
+    const tags = Array.from(tagsSet).sort();
+    res.json({ success:true, data:tags });
+  } catch(e) {
+    res.status(500).json({ success:false, message:'Error fetching tags.' });
+  }
+});
+
+// GET tag suggestions based on prefix
+app.get('/api/blog/tags/suggest/:prefix', (req, res) => {
+  try {
+    const prefix = req.params.prefix.toLowerCase();
+    const posts = db.prepare("SELECT tags FROM blog_posts WHERE status = 'published' AND tags != ''").all();
+    const tagsSet = new Set();
+    posts.forEach(p => {
+      if (p.tags) {
+        const tags = p.tags.split(',').map(t => t.trim()).filter(t => t);
+        tags.forEach(t => tagsSet.add(t));
+      }
+    });
+    const filtered = Array.from(tagsSet).filter(t => t.toLowerCase().startsWith(prefix)).sort();
+    res.json({ success:true, data:filtered });
+  } catch(e) {
+    res.status(500).json({ success:false, message:'Error fetching suggestions.' });
+  }
+});
+
+// GET previous and next blog posts
+app.get('/api/blog/posts/:slug/navigation', (req, res) => {
+  try {
+    const post = db.prepare("SELECT id, created_at FROM blog_posts WHERE slug = ? AND status = 'published'").get(req.params.slug);
+    if (!post) return res.status(404).json({ success:false, message:'Post not found.' });
+
+    const next = db.prepare(`
+      SELECT id, slug, title FROM blog_posts 
+      WHERE status = 'published' AND created_at > ? 
+      ORDER BY created_at ASC LIMIT 1
+    `).get(post.created_at);
+
+    const prev = db.prepare(`
+      SELECT id, slug, title FROM blog_posts 
+      WHERE status = 'published' AND created_at < ? 
+      ORDER BY created_at DESC LIMIT 1
+    `).get(post.created_at);
+
+    res.json({ success:true, data: { prev, next } });
+  } catch(e) {
+    res.status(500).json({ success:false, message:'Error fetching navigation.' });
   }
 });
 
